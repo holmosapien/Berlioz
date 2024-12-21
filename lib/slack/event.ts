@@ -12,12 +12,11 @@ import {
     GeneratedResponse,
 } from 'lib/gemini'
 
-import { SlackEventRecord, ChatHistoryContent } from 'lib/records'
-
-interface SummarizedSlackEvent {
-    prompt: string
-    media?: string
-}
+import {
+    ChatHistoryContent,
+    GenerativeRequest,
+    SlackEventRecord,
+} from 'lib/records'
 
 class SlackEvent {
     context: BerliozContext
@@ -72,7 +71,7 @@ class SlackEvent {
             processed: null,
         }
 
-        return new SlackEvent(context, eventRecord)
+        return new this(context, eventRecord)
     }
 
     static async fromNextUnprocessed(context: BerliozContext): Promise<SlackEvent | null> {
@@ -90,22 +89,38 @@ class SlackEvent {
     }
 
     async processEvent(history: ChatHistoryContent[]): Promise<GeneratedResponse> {
-        const summarizedEvent: SummarizedSlackEvent = this.summarizeEventText()
+        const generativeRequest: GenerativeRequest = await this.summarizeEventText()
 
-        console.log('Summarized event:', summarizedEvent.prompt)
+        console.log('Summarized event:', generativeRequest.prompt)
 
         const gemini = new Gemini(history)
-        const response = await gemini.generateContent(summarizedEvent.prompt)
-        const responseText = response.contentResult.response.text()
+        const response = await gemini.generateContent(generativeRequest)
+
+        let responseText = ''
+
+        try {
+            responseText = response.contentResult.response.text()
+        }
+        catch (error) {
+            responseText = String(error)
+        }
 
         console.log('Gemini response text:', responseText)
 
         return response
     }
 
-    summarizeEventText(): SummarizedSlackEvent {
-        const summarizedEvent: SummarizedSlackEvent = {
+    async summarizeEventText(): Promise<GenerativeRequest> {
+        const generativeRequest: GenerativeRequest = {
             prompt: '',
+        }
+
+        let botUserId: string | null = null
+
+        const integration = await SlackIntegration.fromId(this.context, this.slackIntegrationId)
+
+        if (integration) {
+            botUserId = integration.botUserId
         }
 
         this.event.event.blocks.forEach((block: any) => {
@@ -113,10 +128,10 @@ class SlackEvent {
                 block.elements.forEach((element: any) => {
                     if (element.type === 'rich_text_section') {
                         element.elements.forEach((subElement: any) => {
-                            if (subElement.type == 'user') {
-                                summarizedEvent.prompt += subElement.user_id
+                            if ((subElement.type == 'user') && (subElement.user_id != botUserId)) {
+                                generativeRequest.prompt += subElement.user_id
                             } else if (subElement.type == 'text') {
-                                summarizedEvent.prompt += subElement.text
+                                generativeRequest.prompt += subElement.text
                             }
                         })
                     }
@@ -124,7 +139,35 @@ class SlackEvent {
             }
         })
 
-        return summarizedEvent
+        /*
+         * If there are files in the event, download them and encode them as base64.
+         *
+         */
+
+        if (this.event.event.files && integration) {
+            const firstFile = this.event.event.files[0]
+
+            const {
+                url_private: fileUrl,
+                mimetype: mimeType,
+            } = firstFile
+
+            const contents = await fetch(fileUrl, {
+                headers: {
+                    'Authorization': `Bearer ${integration.accessToken}`,
+                }
+            })
+                .then((response) => response.arrayBuffer())
+                .then((arrayBuffer) => Buffer.from(arrayBuffer).toString("base64"))
+
+            generativeRequest.media = {
+                url: fileUrl,
+                contents,
+                mimeType,
+            }
+        }
+
+        return generativeRequest
     }
 
     async markEventAsProcessed() {
@@ -133,7 +176,3 @@ class SlackEvent {
 }
 
 export default SlackEvent
-
-export {
-    SummarizedSlackEvent,
-}

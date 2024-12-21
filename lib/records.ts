@@ -1,37 +1,20 @@
 import { Content } from '@google/generative-ai'
 
-interface SlackClientRecord {
-    id: number
-    apiClientId: string
-    apiClientSecret: string
-    name: string
-    created: string
-}
-
 interface AuthorizationStateRecord {
     stateId: number
     accountId: number
     slackClientRecord: SlackClientRecord
 }
 
-interface SlackIntegrationRecord {
-    id: number
-    accountId: number
-    slackClientId: number
-    teamId: string
-    teamName: string
-    botUserId: string
-    accessToken: string
-    appId: string
-    created: string
+interface GenerativeRequest {
+    prompt: string
+    media?: GenerativeRequestMedia
 }
 
-interface SlackEventRecord {
-    id: number
-    slackIntegrationId: number
-    event: any
-    created: string
-    processed: string | null
+interface GenerativeRequestMedia {
+    url: string
+    contents: string
+    mimeType: string
 }
 
 interface SlackChatRecord {
@@ -50,13 +33,43 @@ interface SlackChatRoundRecord {
     created: string
 }
 
+interface SlackClientRecord {
+    id: number
+    apiClientId: string
+    apiClientSecret: string
+    name: string
+    created: string
+}
+
+interface SlackEventRecord {
+    id: number
+    slackIntegrationId: number
+    event: any
+    created: string
+    processed: string | null
+}
+
+interface SlackIntegrationRecord {
+    id: number
+    accountId: number
+    slackClientId: number
+    teamId: string
+    teamName: string
+    botUserId: string
+    accessToken: string
+    appId: string
+    created: string
+}
+
 export {
     Content as ChatHistoryContent,
 
-    SlackClientRecord,
     AuthorizationStateRecord,
-    SlackIntegrationRecord,
-    SlackEventRecord,
+    GenerativeRequest,
+    GenerativeRequestMedia,
     SlackChatRecord,
     SlackChatRoundRecord,
+    SlackClientRecord,
+    SlackEventRecord,
+    SlackIntegrationRecord,
 }

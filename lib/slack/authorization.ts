@@ -36,6 +36,7 @@ class SlackAuthorization {
         const botScopes = [
             'app_mentions:read',
             'chat:write',
+            'files:read',
         ].join(',')
 
         const slackClient = await SlackClient.fromSlackClientId(this.context, slackClientId)

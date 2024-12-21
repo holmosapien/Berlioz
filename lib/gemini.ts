@@ -2,12 +2,15 @@ import {
     GenerateContentResult,
     GenerativeModel,
     GoogleGenerativeAI,
+    InlineDataPart,
     ModelParams,
-    Part,
     StartChatParams,
 } from '@google/generative-ai'
 
-import { ChatHistoryContent } from 'lib/records'
+import {
+    ChatHistoryContent,
+    GenerativeRequest,
+} from 'lib/records'
 
 interface RequestMedia {
     data: string,
@@ -40,7 +43,7 @@ class Gemini {
         this.history = history
     }
 
-    async generateContent(prompt: string, media?: RequestMedia): Promise<GeneratedResponse> {
+    async generateContent(request: GenerativeRequest): Promise<GeneratedResponse> {
 
         /*
          * Generate a new chat session, pre-filled with any history
@@ -63,20 +66,22 @@ class Gemini {
          *
          */
 
-        let imagePart: Part | null = null
+        let mediaPart: InlineDataPart | null = null
 
-        if (media) {
-            imagePart = {
+        if (request.media) {
+            mediaPart = {
                 inlineData: {
-                    data: media.data,
-                    mimeType: media.mimeType,
-                },
+                    data: request.media.contents,
+                    mimeType: request.media.mimeType,
+                }
             }
+
+            console.log(`Including media with mimeType=${request.media.mimeType}`)
         }
 
-        const contentArgs = (imagePart)
-            ? [prompt, imagePart]
-            : prompt
+        const contentArgs = (mediaPart)
+            ? [request.prompt, mediaPart]
+            : request.prompt
 
         const result = await chat.sendMessage(contentArgs)
 

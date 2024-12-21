@@ -40,7 +40,16 @@ const worker = async () => {
 
             const chat = await SlackChat.fromTimestamp(context, integration, channel, timestamp)
             const chatResponse = await event.processEvent(chat.history)
-            const responseText = chatResponse.contentResult.response.text()
+
+            let responseText = ''
+
+            try {
+                responseText = chatResponse.contentResult.response.text()
+            }
+            catch (error) {
+                responseText = String(error)
+            }
+
             const success = await chat.sendMessage(responseText)
 
             await chat.updateHistory(chatResponse)
