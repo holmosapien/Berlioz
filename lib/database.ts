@@ -501,6 +501,9 @@ async function getSlackChat(context: BerliozContext, slackIntegrationId: number,
             sc.slack_integration_id = $1 AND
             sc.channel_id = $2 AND
             sc.thread_ts = $3
+        ORDER BY
+            sc.id,
+            scr.id
     `
 
     const values = [

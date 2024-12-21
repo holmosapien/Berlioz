@@ -10,10 +10,6 @@ import BerliozDatabasePool from 'lib/pool'
 import SlackAuthorization from 'lib/slack/authorization'
 import SlackEvent from 'lib/slack/event'
 
-import {
-    SlackEventRecord,
-} from 'lib/records'
-
 const app: Express = express()
 const port: number = 12030
 

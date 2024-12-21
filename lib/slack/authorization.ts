@@ -13,9 +13,12 @@ import {
 
 class SlackAuthorization {
     context: BerliozContext
+    listenerHostname: string
 
     constructor(context: BerliozContext) {
         this.context = context
+
+        this.listenerHostname = process.env.BERLIOZ_LISTENER_HOSTNAME || 'localhost'
     }
 
     handleUrlVerification(challenge: string): Object {
@@ -46,7 +49,7 @@ class SlackAuthorization {
         params.append("client_id", slackClient.apiClientId)
         params.append("scope", botScopes)
         params.append("user_scope", '')
-        params.append("redirect_uri", 'https://berlioz.holmosapien.com/api/v1/berlioz/slack-authorization')
+        params.append("redirect_uri", `https://${this.listenerHostname}/api/v1/berlioz/slack-authorization`)
         params.append("state", state)
 
         const url = 'https://slack.com/oauth/v2/authorize?' + params.toString()

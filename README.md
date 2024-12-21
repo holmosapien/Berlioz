@@ -29,6 +29,8 @@ Now you can connect to the `berlioz` database and create the tables in `schema/i
 ### Environment Variables
 
 ```
+export BERLIOZ_LISTENER_HOSTNAME='<hostname for oauth redirect>'
+
 export GEMINI_API_KEY='<gemini api key>'
 
 export PGUSER='berlioz'
@@ -50,3 +52,32 @@ After transpiling the Typescript to Javascript with `tsc`, one can run the liste
 NODE_PATH=$( pwd ) node index.js
 NODE_PATH=$( pwd ) node worker.js
 ```
+
+### Setting up the Slack Application
+
+Edit `appManifest.json` according to your environment, and use it to create your Slack application at https://api.slack.com/apps.
+
+Once you have your client ID and client secret, you must add them to the database:
+
+```
+berlioz=> INSERT INTO account (email, first_name, last_name) VALUES ('email@domain', 'First', 'Last') RETURNING id;
+ id
+----
+  1
+(1 row)
+
+INSERT 0 1
+berlioz=> INSERT INTO slack_client (api_client_id, api_client_secret, name) VALUES ('client_id', 'client_secret', 'team_name') RETURNING id;
+ id
+----
+  1
+(1 row)
+```
+
+Now you can use the `/api/v1/berlioz/slack-redirect-link` endpoint to get a link to the URL to install your application in your Slack workspace.
+
+```
+$ curl `http://localhost:12030/api/v1/berlioz/slack-redirect-link?account_id=1&slack_client_id=1`
+```
+
+Visit the link in your browser, approve the requested permissions, and now you can invite @Berlioz into your channels for chatting.
