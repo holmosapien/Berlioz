@@ -15,7 +15,7 @@ import {
 } from 'lib/records'
 
 const app: Express = express()
-const port: number = 11030
+const port: number = 12030
 
 const pool = new BerliozDatabasePool()
 

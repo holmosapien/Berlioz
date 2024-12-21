@@ -79,8 +79,8 @@ class SlackIntegration {
             this.teamId,
             this.teamName,
             this.botUserId,
-            this.accessToken,
             this.appId,
+            this.accessToken,
         )
 
         this.record = integrationRecord

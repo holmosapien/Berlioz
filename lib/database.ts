@@ -83,8 +83,7 @@ async function getSlackClientById(context: BerliozContext, slackClientId: number
         FROM
             slack_client
         WHERE
-            id = $1 AND
-            account_id = $2
+            id = $1
     `
 
     const values = [
