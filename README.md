@@ -29,6 +29,7 @@ Now you can connect to the `berlioz` database and create the tables in `schema/i
 ### Environment Variables
 
 ```
+export BERLIOZ_DOWNLOAD_PATH='<path for downloaded files>'
 export BERLIOZ_LISTENER_HOSTNAME='<hostname for oauth redirect>'
 
 export GEMINI_API_KEY='<gemini api key>'

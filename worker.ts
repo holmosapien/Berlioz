@@ -8,6 +8,8 @@ const pool = new BerliozDatabasePool()
 
 const context: BerliozContext = {
     pool,
+    listenerHostname: process.env.BERLIOZ_LISTENER_HOSTNAME || 'localhost',
+    downloadPath: process.env.BERLIOZ_DOWNLOAD_PATH || '/var/tmp',
 }
 
 const worker = async () => {

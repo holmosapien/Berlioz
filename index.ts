@@ -17,6 +17,8 @@ const pool = new BerliozDatabasePool()
 
 const ctx: BerliozContext = {
     pool,
+    listenerHostname: process.env.BERLIOZ_LISTENER_HOSTNAME || 'localhost',
+    downloadPath: process.env.BERLIOZ_DOWNLOAD_PATH || '/var/tmp',
 }
 
 app.use(express.json())
@@ -93,13 +95,6 @@ app.post('/api/v1/berlioz/slack-event', async (req: Request, res: Response) => {
 
         res.json(response)
     } else {
-        const {
-            api_app_id: appId,
-            event: {
-                ts: timestamp,
-            },
-        } = req.body
-
         const slackEvent = await SlackEvent.fromEventBody(context, req.body)
 
         await slackEvent.saveEvent()

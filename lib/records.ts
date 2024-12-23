@@ -12,8 +12,7 @@ interface GenerativeRequest {
 }
 
 interface GenerativeRequestMedia {
-    url: string
-    contents: string
+    filename: string
     mimeType: string
 }
 

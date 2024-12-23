@@ -2,10 +2,15 @@ import {
     GenerateContentResult,
     GenerativeModel,
     GoogleGenerativeAI,
-    InlineDataPart,
+    FileDataPart,
     ModelParams,
     StartChatParams,
 } from '@google/generative-ai'
+
+import {
+    FileMetadata,
+    GoogleAIFileManager,
+} from '@google/generative-ai/server'
 
 import {
     ChatHistoryContent,
@@ -13,7 +18,7 @@ import {
 } from 'lib/records'
 
 interface RequestMedia {
-    data: string,
+    fileUri: string,
     mimeType: string,
 }
 
@@ -24,6 +29,7 @@ interface GeneratedResponse {
 
 class Gemini {
     model: GenerativeModel
+    fileManager: GoogleAIFileManager
     history?: ChatHistoryContent[]
 
     constructor(history?: ChatHistoryContent[]) {
@@ -40,6 +46,7 @@ class Gemini {
         }
 
         this.model = g.getGenerativeModel(modelParams)
+        this.fileManager = new GoogleAIFileManager(apiKey)
         this.history = history
     }
 
@@ -66,13 +73,19 @@ class Gemini {
          *
          */
 
-        let mediaPart: InlineDataPart | null = null
+        let mediaPart: FileDataPart | null = null
 
         if (request.media) {
+            const metadata: FileMetadata = {
+                mimeType: request.media.mimeType,
+            }
+
+            const uploadResult = await this.fileManager.uploadFile(request.media.filename, metadata)
+
             mediaPart = {
-                inlineData: {
-                    data: request.media.contents,
-                    mimeType: request.media.mimeType,
+                fileData: {
+                    fileUri: uploadResult.file.uri,
+                    mimeType: uploadResult.file.mimeType,
                 }
             }
 

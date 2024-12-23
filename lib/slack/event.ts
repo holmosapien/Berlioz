@@ -1,3 +1,6 @@
+import crypto from 'crypto'
+import fs from 'fs'
+
 import BerliozContext from 'lib/context'
 import Gemini from 'lib/gemini'
 import SlackIntegration from 'lib/slack/integration'
@@ -152,18 +155,33 @@ class SlackEvent {
                 mimetype: mimeType,
             } = firstFile
 
+            /*
+             * Download the file to a file in this.downloadPath, using the file's
+             * MD5 hash as the filename.
+             *
+             */
+
+            let filename: string | undefined = undefined
+
             const contents = await fetch(fileUrl, {
                 headers: {
                     'Authorization': `Bearer ${integration.accessToken}`,
                 }
             })
                 .then((response) => response.arrayBuffer())
-                .then((arrayBuffer) => Buffer.from(arrayBuffer).toString("base64"))
+                .then((arrayBuffer) => {
+                    const basename = crypto.createHash('md5').update(Buffer.from(arrayBuffer)).digest('hex')
 
-            generativeRequest.media = {
-                url: fileUrl,
-                contents,
-                mimeType,
+                    filename = `${this.context.downloadPath}/${basename}`
+
+                    fs.writeFileSync(filename, Buffer.from(arrayBuffer))
+                })
+
+            if (filename) {
+                generativeRequest.media = {
+                    filename: filename,
+                    mimeType,
+                }
             }
         }
 
