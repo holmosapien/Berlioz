@@ -15,6 +15,7 @@ import {
 import {
     ChatHistoryContent,
     GenerativeRequest,
+    GenerativeRequestMedia,
 } from 'lib/records'
 
 interface RequestMedia {
@@ -76,18 +77,7 @@ class Gemini {
         let mediaPart: FileDataPart | null = null
 
         if (request.media) {
-            const metadata: FileMetadata = {
-                mimeType: request.media.mimeType,
-            }
-
-            const uploadResult = await this.fileManager.uploadFile(request.media.filename, metadata)
-
-            mediaPart = {
-                fileData: {
-                    fileUri: uploadResult.file.uri,
-                    mimeType: uploadResult.file.mimeType,
-                }
-            }
+            mediaPart = await this.uploadMedia(request.media)
 
             console.log(`Including media with mimeType=${request.media.mimeType}`)
         }
@@ -111,6 +101,21 @@ class Gemini {
         }
 
         return response
+    }
+
+    async uploadMedia(request: GenerativeRequestMedia): Promise<FileDataPart> {
+        const metadata: FileMetadata = {
+            mimeType: request.mimeType,
+        }
+
+        const uploadResult = await this.fileManager.uploadFile(request.filename, metadata)
+
+        return {
+            fileData: {
+                fileUri: uploadResult.file.uri,
+                mimeType: uploadResult.file.mimeType,
+            }
+        }
     }
 }
 

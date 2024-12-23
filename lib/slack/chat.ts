@@ -4,7 +4,7 @@ import slackify from 'slackify-markdown'
 import BerliozContext from 'lib/context'
 import SlackIntegration from 'lib/slack/integration'
 
-import { saveSlackChat, getSlackChat, saveSlackChatRound } from 'lib/database'
+import { saveSlackChat, getSlackChatById, getSlackChatByTimestamp, saveSlackChatRound } from 'lib/database'
 import { GeneratedResponse } from 'lib/gemini'
 import { SlackChatRecord, ChatHistoryContent } from 'lib/records'
 
@@ -39,8 +39,18 @@ class SlackChat {
         this.record = chatRecord
     }
 
+    static async fromId(context: BerliozContext, chatId: number): Promise<SlackChat> {
+        const chatRecord = await getSlackChatById(context, chatId)
+
+        if (!chatRecord) {
+            throw new Error('Failed to find chat')
+        }
+
+        return new this(context, chatRecord)
+    }
+
     static async fromTimestamp(context: BerliozContext, integration: SlackIntegration, channelId: string, timestamp: string): Promise<SlackChat> {
-        const chatRecord = await getSlackChat(context, integration.id, channelId, timestamp)
+        const chatRecord = await getSlackChatByTimestamp(context, integration.id, channelId, timestamp)
 
         if (!chatRecord) {
             throw new Error('Failed to find chat')

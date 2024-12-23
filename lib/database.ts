@@ -483,7 +483,62 @@ async function saveSlackChat(context: BerliozContext, integrationId: number, cha
     return chat
 }
 
-async function getSlackChat(context: BerliozContext, slackIntegrationId: number, channelId: string, timestamp: string): Promise<SlackChatRecord> {
+async function getSlackChatById(context: BerliozContext, slackChatId: number): Promise<SlackChatRecord | null> {
+    const query = `
+        SELECT
+            sc.id,
+            sc.slack_integration_id,
+            sc.channel_id,
+            sc.thread_ts,
+            scr.id AS round_id,
+            scr.round,
+            sc.created
+        FROM
+            slack_chat sc
+        LEFT JOIN
+            slack_chat_round scr ON sc.id = scr.slack_chat_id
+        WHERE
+            sc.id = $1
+        ORDER BY
+            scr.created
+    `
+
+    const values = [
+        slackChatId,
+    ]
+
+    const cursor = await context.pool.query(query, values)
+
+    let chat: SlackChatRecord = {
+        id: 0,
+        slackIntegrationId: 0,
+        channelId: '',
+        timestamp: '',
+        rounds: [],
+        created: new Date().toISOString(),
+    }
+
+    cursor.rows.forEach((row: any) => {
+        chat.id = row.id
+        chat.slackIntegrationId = row.slack_integration_id
+        chat.channelId = row.channel_id
+        chat.timestamp = row.thread_ts
+        chat.created = row.created
+
+        if (row.round_id) {
+            chat.rounds.push({
+                id: row.round_id,
+                slackChatId: row.id,
+                round: row.round,
+                created: row.created,
+            })
+        }
+    })
+
+    return chat
+}
+
+async function getSlackChatByTimestamp(context: BerliozContext, slackIntegrationId: number, channelId: string, timestamp: string): Promise<SlackChatRecord> {
     const query = `
         SELECT
             sc.id,
@@ -562,6 +617,24 @@ async function saveSlackChatRound(context: BerliozContext, slackChatId: number, 
     await context.pool.query(query, values)
 }
 
+async function updateSlackChatRound(context: BerliozContext, roundId: number, round: ChatHistoryContent): Promise<void> {
+    const query = `
+        UPDATE
+            slack_chat_round
+        SET
+            round = $1
+        WHERE
+            id = $2
+    `
+
+    const values = [
+        JSON.stringify(round),
+        roundId,
+    ]
+
+    await context.pool.query(query, values)
+}
+
 export {
     saveAuthorizationState,
     redeemAuthorizationState,
@@ -574,6 +647,8 @@ export {
     getNextUnprocessedEvent,
     markEventAsProcessed,
     saveSlackChat,
-    getSlackChat,
+    getSlackChatById,
+    getSlackChatByTimestamp,
     saveSlackChatRound,
+    updateSlackChatRound,
 }
