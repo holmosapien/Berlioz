@@ -1,3 +1,6 @@
+import bodyParser from 'body-parser'
+import { IncomingMessage, ServerResponse } from 'http'
+
 import express, {
     Express,
     NextFunction,
@@ -10,6 +13,12 @@ import BerliozDatabasePool from 'lib/pool'
 import SlackAuthorization from 'lib/slack/authorization'
 import SlackEvent from 'lib/slack/event'
 
+declare module 'http' {
+    interface IncomingMessage {
+        rawBody: string
+    }
+}
+
 const app: Express = express()
 const port: number = 12030
 
@@ -21,7 +30,11 @@ const ctx: BerliozContext = {
     downloadPath: process.env.BERLIOZ_DOWNLOAD_PATH || '/var/tmp',
 }
 
-app.use(express.json())
+app.use(bodyParser.json({
+    verify: (req: IncomingMessage, res: ServerResponse<IncomingMessage>, buffer: Buffer<ArrayBufferLike>) => {
+        req.rawBody = buffer.toString('utf8')
+    }
+}))
 
 app.use((req: Request, res: Response, next: NextFunction) => {
     const now = new Date().toISOString()
@@ -84,7 +97,6 @@ app.post('/api/v1/berlioz/slack-event', async (req: Request, res: Response) => {
     const { context } = res.locals
 
     const {
-        token,
         challenge,
         type
     } = req.body
@@ -94,13 +106,33 @@ app.post('/api/v1/berlioz/slack-event', async (req: Request, res: Response) => {
         const response = slack.handleUrlVerification(challenge)
 
         res.json(response)
-    } else {
-        const slackEvent = await SlackEvent.fromEventBody(context, req.body)
+
+        return
+    }
+
+    const slackSignature: string = req.headers['x-slack-signature'] as string
+    const slackTimestamp: string = req.headers['x-slack-request-timestamp'] as string
+    const verificationString = `v0:${slackTimestamp}:${req.rawBody}`
+
+    try {
+        const slackEvent = await SlackEvent.fromVerifiedEventBody(
+            context,
+            slackSignature,
+            verificationString,
+            req.body
+        )
 
         await slackEvent.saveEvent()
-
-        res.status(204).end()
     }
+    catch (error) {
+        console.error(error)
+
+        res.status(409).send('Failed to create event')
+
+        return
+    }
+
+    res.status(204).end()
 })
 
 app.listen(port, () => {

@@ -78,6 +78,7 @@ async function getSlackClientById(context: BerliozContext, slackClientId: number
             id,
             api_client_id,
             api_client_secret,
+            signing_secret,
             name,
             created
         FROM
@@ -99,6 +100,7 @@ async function getSlackClientById(context: BerliozContext, slackClientId: number
             id: row.id,
             apiClientId: row.api_client_id,
             apiClientSecret: row.api_client_secret,
+            signingSecret: row.signing_secret,
             name: row.name,
             created: row.created,
         }
@@ -120,6 +122,7 @@ async function getSlackClientByAuthorizationState(
             c.id AS slack_client_id,
             c.api_client_id,
             c.api_client_secret,
+            c.signing_secret,
             c.name,
             c.created
         FROM
@@ -152,6 +155,7 @@ async function getSlackClientByAuthorizationState(
             id: row.slack_client_id,
             apiClientId: row.api_client_id,
             apiClientSecret: row.api_client_secret,
+            signingSecret: row.signing_secret,
             name: row.name,
             created: row.created,
         }

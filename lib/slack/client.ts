@@ -19,6 +19,10 @@ class SlackClient {
         return this.record.apiClientSecret
     }
 
+    get signingSecret(): string {
+        return this.record.signingSecret
+    }
+
     get name(): string {
         return this.record.name
     }

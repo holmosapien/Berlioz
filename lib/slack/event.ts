@@ -3,6 +3,7 @@ import fs from 'fs'
 
 import BerliozContext from 'lib/context'
 import Gemini from 'lib/gemini'
+import SlackClient from 'lib/slack/client'
 import SlackIntegration from 'lib/slack/integration'
 
 import {
@@ -50,6 +51,50 @@ class SlackEvent {
         this.record = slackEventRecord
     }
 
+    static async fromVerifiedEventBody(
+        context: BerliozContext,
+        slackSignature: string,
+        verificationString: string,
+        event: any,
+    ): Promise<SlackEvent> {
+        const {
+            api_app_id: appId,
+            event: {
+                ts: timestamp,
+            },
+        } = event
+
+        const integration = await SlackIntegration.fromAppId(context, appId)
+
+        if (!integration) {
+            throw new Error('Failed to find integration')
+        }
+
+        const client = await SlackClient.fromSlackClientId(context, integration.slackClientId)
+
+        if (!client) {
+            throw new Error('Failed to find client')
+        }
+
+        const valid = SlackEvent.verifyEventBody(slackSignature, verificationString, client.signingSecret)
+
+        if (!valid) {
+            throw new Error('Invalid event body')
+        }
+
+        const created = new Date(Number(timestamp) * 1000).toISOString()
+
+        const eventRecord: SlackEventRecord = {
+            id: 0,
+            slackIntegrationId: integration.id,
+            event,
+            created,
+            processed: null,
+        }
+
+        return new this(context, eventRecord)
+    }
+
     static async fromEventBody(context: BerliozContext, event: any): Promise<SlackEvent> {
         const {
             api_app_id: appId,
@@ -85,6 +130,18 @@ class SlackEvent {
         }
 
         return new this(context, event)
+    }
+
+    static verifyEventBody(
+        slackSignature: string,
+        verificationString: string,
+        signingSecret: string
+    ): boolean {
+        const computedSignature = 'v0=' + crypto.createHmac('sha256', signingSecret)
+            .update(verificationString)
+            .digest('hex')
+
+        return (computedSignature == slackSignature)
     }
 
     async saveEvent() {

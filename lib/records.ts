@@ -36,6 +36,7 @@ interface SlackClientRecord {
     id: number
     apiClientId: string
     apiClientSecret: string
+    signingSecret: string
     name: string
     created: string
 }
